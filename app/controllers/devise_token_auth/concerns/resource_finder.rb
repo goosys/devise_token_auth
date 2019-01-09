@@ -8,28 +8,28 @@ module DeviseTokenAuth::Concerns::ResourceFinder
     # honor Devise configuration for case_insensitive keys
     q_value = resource_params[field.to_sym]
 
-    if resource_class.case_insensitive_keys.include?(field.to_sym)
+    if devise_resource_class.case_insensitive_keys.include?(field.to_sym)
       q_value.downcase!
     end
 
-    if resource_class.strip_whitespace_keys.include?(field.to_sym)
+    if devise_resource_class.strip_whitespace_keys.include?(field.to_sym)
       q_value.strip!
     end
 
     q_value
   end
 
-  def find_resource(field, value)
+  def find_devise_resource(field, value)
     # fix for mysql default case insensitivity
     q = "#{field.to_s} = ? AND provider='#{provider.to_s}'"
     if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
       q = 'BINARY ' + q
     end
 
-    @resource = resource_class.where(q, value).first
+    @resource = devise_resource_class.where(q, value).first
   end
 
-  def resource_class(m = nil)
+  def devise_resource_class(m = nil)
     if m
       mapping = Devise.mappings[m]
     else

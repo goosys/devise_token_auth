@@ -4,6 +4,7 @@ module DeviseTokenAuth
   class TokenValidationsController < DeviseTokenAuth::ApplicationController
     skip_before_action :assert_is_devise_resource!, only: [:validate_token]
     before_action :set_user_by_token, only: [:validate_token]
+    before_action :set_resource_by_devise_resource, only: [:validate_token]
 
     def validate_token
       # @resource will have been set by set_user_by_token concern
@@ -20,7 +21,7 @@ module DeviseTokenAuth
     def render_validate_token_success
       render json: {
         success: true,
-        data: resource_data(resource_json: @resource.token_validation_response)
+        data: devise_resource_data(resource_json: @resource.token_validation_response)
       }
     end
 

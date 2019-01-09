@@ -4,6 +4,7 @@
 module DeviseTokenAuth
   class SessionsController < DeviseTokenAuth::ApplicationController
     before_action :set_user_by_token, only: [:destroy]
+    before_action :set_resource_by_devise_resource, only: [:destroy]
     after_action :reset_session, only: [:destroy]
 
     def new
@@ -12,13 +13,13 @@ module DeviseTokenAuth
 
     def create
       # Check
-      field = (resource_params.keys.map(&:to_sym) & resource_class.authentication_keys).first
+      field = (resource_params.keys.map(&:to_sym) & devise_resource_class.authentication_keys).first
 
       @resource = nil
       if field
         q_value = get_case_insensitive_field_from_resource_params(field)
 
-        @resource = find_resource(field, q_value)
+        @resource = find_devise_resource(field, q_value)
       end
 
       if @resource && valid_params?(field, q_value) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
@@ -74,7 +75,7 @@ module DeviseTokenAuth
       auth_val = nil
 
       # iterate thru allowed auth keys, use first found
-      resource_class.authentication_keys.each do |k|
+      devise_resource_class.authentication_keys.each do |k|
         if resource_params[k]
           auth_val = resource_params[k]
           auth_key = k
@@ -83,7 +84,7 @@ module DeviseTokenAuth
       end
 
       # honor devise configuration for case_insensitive_keys
-      if resource_class.case_insensitive_keys.include?(auth_key)
+      if devise_resource_class.case_insensitive_keys.include?(auth_key)
         auth_val.downcase!
       end
 
@@ -96,7 +97,7 @@ module DeviseTokenAuth
 
     def render_create_success
       render json: {
-        data: resource_data(resource_json: @resource.token_validation_response)
+        data: devise_resource_data(resource_json: @resource.token_validation_response)
       }
     end
 

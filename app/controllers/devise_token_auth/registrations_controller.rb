@@ -32,8 +32,8 @@ module DeviseTokenAuth
 
       begin
         # override email confirmation, must be sent manually from ctrl
-        resource_class.set_callback('create', :after, :send_on_create_confirmation_instructions)
-        resource_class.skip_callback('create', :after, :send_on_create_confirmation_instructions)
+        devise_resource_class.set_callback('create', :after, :send_on_create_confirmation_instructions)
+        devise_resource_class.skip_callback('create', :after, :send_on_create_confirmation_instructions)
 
         if @resource.respond_to? :skip_confirmation_notification!
           # Fix duplicate e-mails by disabling Devise confirmation e-mail
@@ -101,11 +101,11 @@ module DeviseTokenAuth
     protected
 
     def build_resource
-      @resource            = resource_class.new(sign_up_params)
+      @resource            = devise_resource_class.new(sign_up_params)
       @resource.provider   = provider
 
       # honor devise configuration for case_insensitive_keys
-      if resource_class.case_insensitive_keys.include?(:email)
+      if devise_resource_class.case_insensitive_keys.include?(:email)
         @resource.email = sign_up_params[:email].try(:downcase)
       else
         @resource.email = sign_up_params[:email]
@@ -115,7 +115,7 @@ module DeviseTokenAuth
     def render_create_error_missing_confirm_success_url
       response = {
         status: 'error',
-        data:   resource_data
+        data:   devise_resource_data
       }
       message = I18n.t('devise_token_auth.registrations.missing_confirm_success_url')
       render_error(422, message, response)
@@ -124,7 +124,7 @@ module DeviseTokenAuth
     def render_create_error_redirect_url_not_allowed
       response = {
         status: 'error',
-        data:   resource_data
+        data:   devise_resource_data
       }
       message = I18n.t('devise_token_auth.registrations.redirect_url_not_allowed', redirect_url: @redirect_url)
       render_error(422, message, response)
@@ -133,22 +133,22 @@ module DeviseTokenAuth
     def render_create_success
       render json: {
         status: 'success',
-        data:   resource_data
+        data:   devise_resource_data
       }
     end
 
     def render_create_error
       render json: {
         status: 'error',
-        data:   resource_data,
-        errors: resource_errors
+        data:   devise_resource_data,
+        errors: devise_resource_errors
       }, status: 422
     end
 
     def render_create_error_email_already_exists
       response = {
         status: 'error',
-        data:   resource_data
+        data:   devise_resource_data
       }
       message = I18n.t('devise_token_auth.registrations.email_already_exists', email: @resource.email)
       render_error(422, message, response)
@@ -157,14 +157,14 @@ module DeviseTokenAuth
     def render_update_success
       render json: {
         status: 'success',
-        data:   resource_data
+        data:   devise_resource_data
       }
     end
 
     def render_update_error
       render json: {
         status: 'error',
-        errors: resource_errors
+        errors: devise_resource_errors
       }, status: 422
     end
 

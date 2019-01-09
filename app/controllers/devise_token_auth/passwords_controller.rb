@@ -3,6 +3,7 @@
 module DeviseTokenAuth
   class PasswordsController < DeviseTokenAuth::ApplicationController
     before_action :set_user_by_token, only: [:update]
+    before_action :set_resource_by_devise_resource, only: [:update]
     skip_after_action :update_auth_header, only: [:create, :edit]
 
     # this action is responsible for generating password reset tokens and
@@ -20,7 +21,7 @@ module DeviseTokenAuth
       return render_create_error_not_allowed_redirect_url if blacklisted_redirect_url?
 
       @email = get_case_insensitive_field_from_resource_params(:email)
-      @resource = find_resource(:uid, @email)
+      @resource = find_devise_resource(:uid, @email)
 
       if @resource
         yield @resource if block_given?
@@ -117,7 +118,7 @@ module DeviseTokenAuth
     def render_create_error_not_allowed_redirect_url
       response = {
         status: 'error',
-        data:   resource_data
+        data:   devise_resource_data
       }
       message = I18n.t('devise_token_auth.passwords.not_allowed_redirect_url', redirect_url: @redirect_url)
       render_error(422, message, response)
@@ -156,7 +157,7 @@ module DeviseTokenAuth
     def render_update_success
       render json: {
         success: true,
-        data: resource_data,
+        data: devise_resource_data,
         message: I18n.t('devise_token_auth.passwords.successfully_updated')
       }
     end
@@ -164,7 +165,7 @@ module DeviseTokenAuth
     def render_update_error
       render json: {
         success: false,
-        errors: resource_errors
+        errors: devise_resource_errors
       }, status: 422
     end
 
@@ -179,7 +180,7 @@ module DeviseTokenAuth
     end
 
     def with_reset_password_token token
-      recoverable = resource_class.with_reset_password_token(token)
+      recoverable = devise_resource_class.with_reset_password_token(token)
 
       recoverable.reset_password_token = token if recoverable && recoverable.reset_password_token.present?
       recoverable

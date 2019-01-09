@@ -10,7 +10,7 @@ module DeviseTokenAuth
       return render_create_error_missing_email unless resource_params[:email]
 
       @email = get_case_insensitive_field_from_resource_params(:email)
-      @resource = find_resource(:email, @email)
+      @resource = find_devise_resource(:email, @email)
 
       if @resource
         yield @resource if block_given?
@@ -32,7 +32,7 @@ module DeviseTokenAuth
     end
 
     def show
-      @resource = resource_class.unlock_access_by_token(params[:unlock_token])
+      @resource = devise_resource_class.unlock_access_by_token(params[:unlock_token])
 
       if @resource && @resource.id
         client_id, token = @resource.create_token

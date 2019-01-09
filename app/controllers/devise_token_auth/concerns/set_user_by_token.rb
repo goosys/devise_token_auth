@@ -11,6 +11,10 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
   protected
 
+  def set_resource_by_devise_resource
+    @resource = @devise_resource
+  end
+
   # keep track of request duration
   def set_request_start
     @request_started_at = Time.zone.now
@@ -18,27 +22,27 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     # initialize instance variables
     @client_id ||= nil
-    @resource ||= nil
+    @devise_resource ||= nil
     @token ||= nil
     @is_batch_request ||= nil
   end
 
   def ensure_pristine_resource
-    if @resource.changed?
+    if @devise_resource.changed?
       # Stash pending changes in the resource before reloading.
-      changes = @resource.changes
-      @resource.reload
+      changes = @devise_resource.changes
+      @devise_resource.reload
     end
     yield
   ensure
     # Reapply pending changes
-    @resource.assign_attributes(changes) if changes
+    @devise_resource.assign_attributes(changes) if changes
   end
 
   # user auth
   def set_user_by_token(mapping = nil)
     # determine target authentication class
-    rc = resource_class(mapping)
+    rc = devise_resource_class(mapping)
 
     # no default user defined
     return unless rc
@@ -61,15 +65,15 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       devise_warden_user = warden.user(rc.to_s.underscore.to_sym)
       if devise_warden_user && devise_warden_user.tokens[@client_id].nil?
         @used_auth_by_token = false
-        @resource = devise_warden_user
+        @devise_resource = devise_warden_user
         # REVIEW: The following line _should_ be safe to remove;
         #  the generated token does not get used anywhere.
-        # @resource.create_new_auth_token
+        # @devise_resource.create_new_auth_token
       end
     end
 
     # user has already been found and authenticated
-    return @resource if @resource && @resource.is_a?(rc)
+    return @devise_resource if @devise_resource && @devise_resource.is_a?(rc)
 
     # ensure we clear the client_id
     unless @token
@@ -89,38 +93,38 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       else
         sign_in(:user, user, store: false, event: :fetch, bypass: DeviseTokenAuth.bypass_sign_in)
       end
-      return @resource = user
+      return @devise_resource = user
     else
       # zero all values previously set values
       @client_id = nil
-      return @resource = nil
+      return @devise_resource = nil
     end
   end
 
   def update_auth_header
     # cannot save object if model has invalid params
 
-    return unless @resource && @client_id
+    return unless @devise_resource && @client_id
 
     # Generate new client_id with existing authentication
     @client_id = nil unless @used_auth_by_token
 
     if @used_auth_by_token && !DeviseTokenAuth.change_headers_on_each_request
-      # should not append auth header if @resource related token was
+      # should not append auth header if @devise_resource related token was
       # cleared by sign out in the meantime
-      return if @resource.reload.tokens[@client_id].nil?
+      return if @devise_resource.reload.tokens[@client_id].nil?
 
-      auth_header = @resource.build_auth_header(@token, @client_id)
+      auth_header = @devise_resource.build_auth_header(@token, @client_id)
 
       # update the response header
       response.headers.merge!(auth_header)
 
     else
-      unless @resource.reload.valid?
-        @resource = resource_class.find(@resource.to_param) # errors remain after reload
+      unless @devise_resource.reload.valid?
+        @devise_resource = devise_resource_class.find(@devise_resource.to_param) # errors remain after reload
         # if we left the model in a bad state, something is wrong in our app
-        unless @resource.valid?
-          raise DeviseTokenAuth::Errors::InvalidModel, "Cannot set auth token in invalid model. Errors: #{@resource.errors.full_messages}"
+        unless @devise_resource.valid?
+          raise DeviseTokenAuth::Errors::InvalidModel, "Cannot set auth token in invalid model. Errors: #{@devise_resource.errors.full_messages}"
         end
       end
       refresh_headers
@@ -133,10 +137,10 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     ensure_pristine_resource do
       # Lock the user record during any auth_header updates to ensure
       # we don't have write contention from multiple threads
-      @resource.with_lock do
-        # should not append auth header if @resource related token was
+      @devise_resource.with_lock do
+        # should not append auth header if @devise_resource related token was
         # cleared by sign out in the meantime
-        return if @used_auth_by_token && @resource.tokens[@client_id].nil?
+        return if @used_auth_by_token && @devise_resource.tokens[@client_id].nil?
 
         # update the response header
         response.headers.merge!(auth_header_from_batch_request)
@@ -154,13 +158,13 @@ module DeviseTokenAuth::Concerns::SetUserByToken
   def auth_header_from_batch_request
     # determine batch request status after request processing, in case
     # another processes has updated it during that processing
-    @is_batch_request = is_batch_request?(@resource, @client_id)
+    @is_batch_request = is_batch_request?(@devise_resource, @client_id)
 
     auth_header = {}
     # extend expiration of batch buffer to account for the duration of
     # this request
     if @is_batch_request
-      auth_header = @resource.extend_batch_buffer(@token, @client_id)
+      auth_header = @devise_resource.extend_batch_buffer(@token, @client_id)
 
       # Do not return token for batch requests to avoid invalidated
       # tokens returned to the client in case of race conditions.
@@ -171,7 +175,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       auth_header[DeviseTokenAuth.headers_names[:"expiry"]] = ' '
     else
       # update Authorization response header with new token
-      auth_header = @resource.create_new_auth_token(@client_id)
+      auth_header = @devise_resource.create_new_auth_token(@client_id)
     end
     auth_header
   end
