@@ -5,17 +5,17 @@ module Overrides
     OVERRIDE_PROOF = '(^^,)'.freeze
 
     def update
-      if @resource
-        if @resource.update_attributes(account_update_params)
+      if @devise_resource
+        if @devise_resource.update_attributes(account_update_params)
           render json: {
             status: 'success',
-            data:   @resource.as_json,
+            data:   @devise_resource.as_json,
             override_proof: OVERRIDE_PROOF
           }
         else
           render json: {
             status: 'error',
-            errors: @resource.errors
+            errors: @devise_resource.errors
           }, status: 422
         end
       else

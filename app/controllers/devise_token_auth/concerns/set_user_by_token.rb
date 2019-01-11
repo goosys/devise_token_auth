@@ -11,9 +11,9 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
   protected
 
-  def set_resource_by_devise_resource
-    @resource = @devise_resource
-  end
+  # def set_resource_by_devise_resource
+  #   @devise_resource = @devise_resource
+  # end
 
   # keep track of request duration
   def set_request_start

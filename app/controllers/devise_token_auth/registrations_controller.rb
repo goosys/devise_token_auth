@@ -10,9 +10,9 @@ module DeviseTokenAuth
     def create
       build_resource
 
-      unless @resource.present?
+      unless @devise_resource.present?
         raise DeviseTokenAuth::Errors::NoResourceDefinedError,
-              "#{self.class.name} #build_resource does not define @resource,"\
+              "#{self.class.name} #build_resource does not define @devise_resource,"\
               ' execution stopped.'
       end
 
@@ -35,22 +35,22 @@ module DeviseTokenAuth
         devise_resource_class.set_callback('create', :after, :send_on_create_confirmation_instructions)
         devise_resource_class.skip_callback('create', :after, :send_on_create_confirmation_instructions)
 
-        if @resource.respond_to? :skip_confirmation_notification!
+        if @devise_resource.respond_to? :skip_confirmation_notification!
           # Fix duplicate e-mails by disabling Devise confirmation e-mail
-          @resource.skip_confirmation_notification!
+          @devise_resource.skip_confirmation_notification!
         end
 
-        if @resource.save
-          yield @resource if block_given?
+        if @devise_resource.save
+          yield @devise_resource if block_given?
 
-          if @resource.confirmed?
+          if @devise_resource.confirmed?
             # email auth has been bypassed, authenticate user
-            @client_id, @token = @resource.create_token
-            @resource.save!
+            @client_id, @token = @devise_resource.create_token
+            @devise_resource.save!
             update_auth_header
           else
             # user will require email authentication
-            @resource.send_confirmation_instructions(
+            @devise_resource.send_confirmation_instructions(
               client_config: params[:config_name],
               redirect_url: @redirect_url
             )
@@ -58,19 +58,19 @@ module DeviseTokenAuth
 
           render_create_success
         else
-          clean_up_passwords @resource
+          clean_up_passwords @devise_resource
           render_create_error
         end
       rescue ActiveRecord::RecordNotUnique
-        clean_up_passwords @resource
+        clean_up_passwords @devise_resource
         render_create_error_email_already_exists
       end
     end
 
     def update
-      if @resource
-        if @resource.send(resource_update_method, account_update_params)
-          yield @resource if block_given?
+      if @devise_resource
+        if @devise_resource.send(resource_update_method, account_update_params)
+          yield @devise_resource if block_given?
           render_update_success
         else
           render_update_error
@@ -81,9 +81,9 @@ module DeviseTokenAuth
     end
 
     def destroy
-      if @resource
-        @resource.destroy
-        yield @resource if block_given?
+      if @devise_resource
+        @devise_resource.destroy
+        yield @devise_resource if block_given?
         render_destroy_success
       else
         render_destroy_error
@@ -101,14 +101,14 @@ module DeviseTokenAuth
     protected
 
     def build_resource
-      @resource            = devise_resource_class.new(sign_up_params)
-      @resource.provider   = provider
+      @devise_resource            = devise_resource_class.new(sign_up_params)
+      @devise_resource.provider   = provider
 
       # honor devise configuration for case_insensitive_keys
       if devise_resource_class.case_insensitive_keys.include?(:email)
-        @resource.email = sign_up_params[:email].try(:downcase)
+        @devise_resource.email = sign_up_params[:email].try(:downcase)
       else
-        @resource.email = sign_up_params[:email]
+        @devise_resource.email = sign_up_params[:email]
       end
     end
 
@@ -150,7 +150,7 @@ module DeviseTokenAuth
         status: 'error',
         data:   devise_resource_data
       }
-      message = I18n.t('devise_token_auth.registrations.email_already_exists', email: @resource.email)
+      message = I18n.t('devise_token_auth.registrations.email_already_exists', email: @devise_resource.email)
       render_error(422, message, response)
     end
 
@@ -175,7 +175,7 @@ module DeviseTokenAuth
     def render_destroy_success
       render json: {
         status: 'success',
-        message: I18n.t('devise_token_auth.registrations.account_with_uid_destroyed', uid: @resource.uid)
+        message: I18n.t('devise_token_auth.registrations.account_with_uid_destroyed', uid: @devise_resource.uid)
       }
     end
 

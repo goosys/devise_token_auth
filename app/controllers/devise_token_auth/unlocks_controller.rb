@@ -10,21 +10,21 @@ module DeviseTokenAuth
       return render_create_error_missing_email unless resource_params[:email]
 
       @email = get_case_insensitive_field_from_resource_params(:email)
-      @resource = find_devise_resource(:email, @email)
+      @devise_resource = find_devise_resource(:email, @email)
 
-      if @resource
-        yield @resource if block_given?
+      if @devise_resource
+        yield @devise_resource if block_given?
 
-        @resource.send_unlock_instructions(
+        @devise_resource.send_unlock_instructions(
           email: @email,
           provider: 'email',
           client_config: params[:config_name]
         )
 
-        if @resource.errors.empty?
+        if @devise_resource.errors.empty?
           return render_create_success
         else
-          render_create_error @resource.errors
+          render_create_error @devise_resource.errors
         end
       else
         render_not_found_error
@@ -32,18 +32,18 @@ module DeviseTokenAuth
     end
 
     def show
-      @resource = devise_resource_class.unlock_access_by_token(params[:unlock_token])
+      @devise_resource = devise_resource_class.unlock_access_by_token(params[:unlock_token])
 
-      if @resource && @resource.id
-        client_id, token = @resource.create_token
-        @resource.save!
-        yield @resource if block_given?
+      if @devise_resource && @devise_resource.id
+        client_id, token = @devise_resource.create_token
+        @devise_resource.save!
+        yield @devise_resource if block_given?
 
         redirect_header_options = { unlock: true }
         redirect_headers = build_redirect_headers(token,
                                                   client_id,
                                                   redirect_header_options)
-        redirect_to(@resource.build_auth_url(after_unlock_path_for(@resource),
+        redirect_to(@devise_resource.build_auth_url(after_unlock_path_for(@devise_resource),
                                              redirect_headers))
       else
         render_show_error

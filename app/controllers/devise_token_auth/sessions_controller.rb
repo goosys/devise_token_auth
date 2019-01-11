@@ -4,7 +4,7 @@
 module DeviseTokenAuth
   class SessionsController < DeviseTokenAuth::ApplicationController
     before_action :set_user_by_token, only: [:destroy]
-    before_action :set_resource_by_devise_resource, only: [:destroy]
+    # before_action :set_resource_by_devise_resource, only: [:destroy]
     after_action :reset_session, only: [:destroy]
 
     def new
@@ -15,28 +15,28 @@ module DeviseTokenAuth
       # Check
       field = (resource_params.keys.map(&:to_sym) & devise_resource_class.authentication_keys).first
 
-      @resource = nil
+      @devise_resource = nil
       if field
         q_value = get_case_insensitive_field_from_resource_params(field)
 
-        @resource = find_devise_resource(field, q_value)
+        @devise_resource = find_devise_resource(field, q_value)
       end
 
-      if @resource && valid_params?(field, q_value) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
-        valid_password = @resource.valid_password?(resource_params[:password])
-        if (@resource.respond_to?(:valid_for_authentication?) && !@resource.valid_for_authentication? { valid_password }) || !valid_password
+      if @devise_resource && valid_params?(field, q_value) && (!@devise_resource.respond_to?(:active_for_authentication?) || @devise_resource.active_for_authentication?)
+        valid_password = @devise_resource.valid_password?(resource_params[:password])
+        if (@devise_resource.respond_to?(:valid_for_authentication?) && !@devise_resource.valid_for_authentication? { valid_password }) || !valid_password
           return render_create_error_bad_credentials
         end
-        @client_id, @token = @resource.create_token
-        @resource.save
+        @client_id, @token = @devise_resource.create_token
+        @devise_resource.save
 
-        sign_in(:user, @resource, store: false, bypass: false)
+        sign_in(:user, @devise_resource, store: false, bypass: false)
 
-        yield @resource if block_given?
+        yield @devise_resource if block_given?
 
         render_create_success
-      elsif @resource && !(!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
-        if @resource.respond_to?(:locked_at) && @resource.locked_at
+      elsif @devise_resource && !(!@devise_resource.respond_to?(:active_for_authentication?) || @devise_resource.active_for_authentication?)
+        if @devise_resource.respond_to?(:locked_at) && @devise_resource.locked_at
           render_create_error_account_locked
         else
           render_create_error_not_confirmed
@@ -48,7 +48,7 @@ module DeviseTokenAuth
 
     def destroy
       # remove auth instance variables so that after_action does not run
-      user = remove_instance_variable(:@resource) if @resource
+      user = remove_instance_variable(:@devise_resource) if @devise_resource
       client_id = remove_instance_variable(:@client_id) if @client_id
       remove_instance_variable(:@token) if @token
 
@@ -97,12 +97,12 @@ module DeviseTokenAuth
 
     def render_create_success
       render json: {
-        data: devise_resource_data(resource_json: @resource.token_validation_response)
+        data: devise_resource_data(resource_json: @devise_resource.token_validation_response)
       }
     end
 
     def render_create_error_not_confirmed
-      render_error(401, I18n.t('devise_token_auth.sessions.not_confirmed', email: @resource.email))
+      render_error(401, I18n.t('devise_token_auth.sessions.not_confirmed', email: @devise_resource.email))
     end
 
     def render_create_error_account_locked

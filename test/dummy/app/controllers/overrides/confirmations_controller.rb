@@ -3,11 +3,11 @@
 module Overrides
   class ConfirmationsController < DeviseTokenAuth::ConfirmationsController
     def show
-      @resource = resource_class.confirm_by_token(params[:confirmation_token])
+      @devise_resource = resource_class.confirm_by_token(params[:confirmation_token])
 
-      if @resource && @resource.id
-        client_id, token = @resource.create_token
-        @resource.save!
+      if @devise_resource && @devise_resource.id
+        client_id, token = @devise_resource.create_token
+        @devise_resource.save!
 
         redirect_header_options = {
           account_confirmation_success: true,
@@ -18,7 +18,7 @@ module Overrides
                                                   client_id,
                                                   redirect_header_options)
 
-        redirect_to(@resource.build_auth_url(params[:redirect_url],
+        redirect_to(@devise_resource.build_auth_url(params[:redirect_url],
                                              redirect_headers))
       else
         raise ActionController::RoutingError, 'Not Found'

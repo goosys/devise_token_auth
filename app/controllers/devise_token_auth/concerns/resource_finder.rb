@@ -26,7 +26,7 @@ module DeviseTokenAuth::Concerns::ResourceFinder
       q = 'BINARY ' + q
     end
 
-    @resource = devise_resource_class.where(q, value).first
+    @devise_resource = devise_resource_class.where(q, value).first
   end
 
   def devise_resource_class(m = nil)

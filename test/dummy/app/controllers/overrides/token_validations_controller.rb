@@ -5,11 +5,11 @@ module Overrides
     OVERRIDE_PROOF = '(^^,)'.freeze
 
     def validate_token
-      # @resource will have been set by set_user_by_token concern
-      if @resource
+      # @devise_resource will have been set by set_user_by_token concern
+      if @devise_resource
         render json: {
           success: true,
-          data: @resource.as_json(except: %i[tokens created_at updated_at]),
+          data: @devise_resource.as_json(except: %i[tokens created_at updated_at]),
           override_proof: OVERRIDE_PROOF
         }
       else

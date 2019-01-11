@@ -3,20 +3,20 @@
 module DeviseTokenAuth
   class ConfirmationsController < DeviseTokenAuth::ApplicationController
     def show
-      @resource = devise_resource_class.confirm_by_token(params[:confirmation_token])
+      @devise_resource = devise_resource_class.confirm_by_token(params[:confirmation_token])
 
-      if @resource && @resource.id
+      if @devise_resource && @devise_resource.id
         expiry = nil
-        if defined?(@resource.sign_in_count) && @resource.sign_in_count > 0
+        if defined?(@devise_resource.sign_in_count) && @devise_resource.sign_in_count > 0
           expiry = (Time.zone.now + 1.second).to_i
         end
 
-        client_id, token = @resource.create_token expiry: expiry
+        client_id, token = @devise_resource.create_token expiry: expiry
 
-        sign_in(@resource)
-        @resource.save!
+        sign_in(@devise_resource)
+        @devise_resource.save!
 
-        yield @resource if block_given?
+        yield @devise_resource if block_given?
 
         redirect_header_options = { account_confirmation_success: true }
         redirect_headers = build_redirect_headers(token,
@@ -30,7 +30,7 @@ module DeviseTokenAuth
         @redirect_url ||= DeviseTokenAuth.default_confirm_success_url
 
 
-        redirect_to(@resource.build_auth_url(@redirect_url, redirect_headers))
+        redirect_to(@devise_resource.build_auth_url(@redirect_url, redirect_headers))
       else
         raise ActionController::RoutingError, 'Not Found'
       end

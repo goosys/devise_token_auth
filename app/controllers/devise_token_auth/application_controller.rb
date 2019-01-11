@@ -6,13 +6,13 @@ module DeviseTokenAuth
     include DeviseTokenAuth::Concerns::ResourceFinder
 
     def devise_resource_data(opts = {})
-      response_data = opts[:resource_json] || @resource.as_json
-      response_data['type'] = @resource.class.name.parameterize if json_api?
+      response_data = opts[:resource_json] || @devise_resource.as_json
+      response_data['type'] = @devise_resource.class.name.parameterize if json_api?
       response_data
     end
 
     def devise_resource_errors
-      @resource.errors.to_hash.merge(full_messages: @resource.errors.full_messages)
+      @devise_resource.errors.to_hash.merge(full_messages: @devise_resource.errors.full_messages)
     end
 
     protected

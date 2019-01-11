@@ -33,16 +33,16 @@ module DeviseTokenAuth
 
       if confirmable_enabled?
         # don't send confirmation email!!!
-        @resource.skip_confirmation!
+        @devise_resource.skip_confirmation!
       end
 
-      sign_in(:user, @resource, store: false, bypass: false)
+      sign_in(:user, @devise_resource, store: false, bypass: false)
 
-      @resource.save!
+      @devise_resource.save!
 
-      yield @resource if block_given?
+      yield @devise_resource if block_given?
 
-      render_data_or_redirect('deliverCredentials', @auth_params.as_json, @resource.as_json)
+      render_data_or_redirect('deliverCredentials', @auth_params.as_json, @devise_resource.as_json)
     end
 
     def omniauth_failure
@@ -150,15 +150,15 @@ module DeviseTokenAuth
       # set crazy password for new oauth users. this is only used to prevent
       # access via email sign-in.
       p = SecureRandom.urlsafe_base64(nil, false)
-      @resource.password = p
-      @resource.password_confirmation = p
+      @devise_resource.password = p
+      @devise_resource.password_confirmation = p
     end
 
     def create_auth_params
       @auth_params = {
         auth_token:     @token,
         client_id: @client_id,
-        uid:       @resource.uid,
+        uid:       @devise_resource.uid,
         expiry:    @expiry,
         config:    @config
       }
@@ -168,7 +168,7 @@ module DeviseTokenAuth
 
     def set_token_on_resource
       @config = omniauth_params['config_name']
-      @client_id, @token, @expiry = @resource.create_token
+      @client_id, @token, @expiry = @devise_resource.create_token
     end
 
     def render_data(message, data)
@@ -216,24 +216,24 @@ module DeviseTokenAuth
 
     def get_resource_from_auth_hash
       # find or create user by provider and provider uid
-      @resource = resource_class.where(
+      @devise_resource = resource_class.where(
         uid: auth_hash['uid'],
         provider: auth_hash['provider']
       ).first_or_initialize
 
-      if @resource.new_record?
+      if @devise_resource.new_record?
         @oauth_registration = true
         set_random_password
       end
 
       # sync user info with provider, update/generate auth token
-      assign_provider_attrs(@resource, auth_hash)
+      assign_provider_attrs(@devise_resource, auth_hash)
 
       # assign any additional (whitelisted) attributes
       extra_params = whitelisted_params
-      @resource.assign_attributes(extra_params) if extra_params
+      @devise_resource.assign_attributes(extra_params) if extra_params
 
-      @resource
+      @devise_resource
     end
   end
 end
